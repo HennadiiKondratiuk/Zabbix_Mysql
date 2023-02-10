@@ -1,0 +1,46 @@
+---
+- name: Update repo
+  ansible.builtin.shell: |
+    apt update
+
+- name: Install mysql server and client
+  ansible.builtin.apt:
+    pkg:
+    - mysql-server
+    - python3-mysqldb
+
+- name: Create initial database 
+  ansible.builtin.shell: |
+    mysql -e "create database "{{ db_name }}" character set utf8mb4 collate utf8mb4_bin"
+    mysql -e "create user "{{ db_user }}"@"{{ zabbix_host }}" identified by '{{ password }}'"
+    mysql -e "grant all privileges on "{{ db_name }}".* to {{ db_user }}@{{ zabbix_host }}"
+    mysql -e "set global log_bin_trust_function_creators = 1"
+
+- name: Ensure bind-address is commented
+  ansible.builtin.lineinfile:
+    path: /etc/mysql/mysql.conf.d/mysqld.cnf
+    regexp: '^bind-address'
+    line: '#bind-address = 127.0.0.1'
+
+- name: Restart mysql-server
+  ansible.builtin.systemd:
+    state: restarted
+    daemon_reload: yes
+    enabled: yes
+    name: mysql
+
+- name: Copy schema.sql file 
+  ansible.builtin.copy:
+    src: schema.sql
+    dest: /tmp/schema.sql
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Import initial schema and data
+  community.mysql.mysql_db:
+    name: "{{  db_name  }}"
+    state: import
+    target: /tmp/schema.sql
+
+    

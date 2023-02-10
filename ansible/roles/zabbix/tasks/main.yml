@@ -1,0 +1,44 @@
+---
+
+- name: Install Zabbix repository
+  ansible.builtin.shell: |
+    wget "{{  zabbix_repo_path  }}"
+    dpkg -i "{{  zabbix_package  }}"
+    apt update
+
+- name: Install Zabbix server, frontend, agent
+  ansible.builtin.apt:
+    pkg:
+    - zabbix-server-mysql
+    - zabbix-frontend-php
+    - zabbix-apache-conf
+    - zabbix-sql-scripts
+    - zabbix-agent
+    - python3-mysqldb
+
+- name: Add zabbix server config file
+  ansible.builtin.template:
+    src: "{{  zabbix_server_template  }}"
+    dest: /etc/zabbix/zabbix_server.conf
+    mode: '0644'
+    force: yes
+
+- name: Add zabbix agent config file 
+  ansible.builtin.template:
+    src: "{{  zabbix_agent_template  }}"
+    dest: /etc/zabbix/zabbix_agentd.conf
+    mode: '0644'
+    force: yes
+
+- name: Restart and enable service zabbix-server zabbix-agent apache2
+  ansible.builtin.systemd:
+    state: restarted
+    daemon_reload: yes
+    enabled: yes
+    name: '{{  item  }}'
+  with_items:
+    - zabbix-server
+    - zabbix-agent
+    - apache2
+    
+
