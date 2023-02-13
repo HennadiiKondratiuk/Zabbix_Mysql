@@ -1,7 +1,3 @@
-locals {
-  timestamp = regex_replace(timestamp(), "[- TZ:]", "")
-}
-
 source "amazon-ebs" "hkondrat-source" {
   ami_name = "${var.ami_name}-${var.ans_tag}-${local.timestamp}"
   source_ami_filter {
